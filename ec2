@@ -1,0 +1,115 @@
+////////////VPC
+
+resource "aws_vpc" "default" {
+  
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  
+   tags = {
+    Name        = "New-VPC"
+    Terraform   = "true"
+  }
+}
+
+//////////internet_gateway
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.default.id}"
+
+  tags = {
+    Name        = "New-Gateway"
+    Terraform   = "true"
+    
+  }
+}
+
+//////////aws_subnet
+
+resource "aws_subnet" "tf_test_subnet" {
+  vpc_id                  = "${aws_vpc.default.id}"
+  cidr_block              = "10.0.0.0/24"
+  map_public_ip_on_launch = true
+
+#   depends_on = ["aws_internet_gateway.gw"]
+
+    tags = {
+    Name        = "New-Subnet"
+    Terraform   = "true"
+  }
+}
+  
+
+
+
+
+//////////security_group
+resource "aws_security_group" "allow_tls" {
+  description = "Allow TLS inbound traffic"
+  vpc_id      = "${aws_vpc.default.id}"
+
+     // To Allow SSL Transport
+  ingress {
+    description      = "TLS from VPC"
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = [ "0.0.0.0/0", ]
+    ipv6_cidr_blocks = []
+  }
+
+    // To Allow SSH Transport
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  // To Allow Port 80 Transport
+  ingress {
+    from_port = 80
+    protocol = "tcp"
+    to_port = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
+     tags = {
+    Name        = "New-SG"
+    Terraform   = "true"
+  }
+  
+}
+
+
+
+//////////ec2
+
+resource "aws_instance" "foo" {
+
+  ami                       = "ami-00c90dbdc12232b58"
+  instance_type             = "t2.micro"
+#   disable_api_termination   = true
+    monitoring                = true
+    key_name  = "aws_key"
+    tags = {
+    Name = "Docker-Ramesh"
+    Terraform   = "true"
+  }
+
+
+  private_ip = "10.0.0.12"
+  subnet_id  = "${aws_subnet.tf_test_subnet.id}"
+   
+}
+
+
+
+
